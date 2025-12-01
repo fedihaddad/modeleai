@@ -57,15 +57,21 @@ def load_models_async():
     models_loading = True
     try:
         print("🚀 Loading models in background...")
+        print(f"   Current memory usage: Checking...")
         yolo_model, mobilenet_model, class_labels = load_models()
         print("✅ Models loaded successfully!")
-        print(f"   YOLO model: {type(yolo_model)}")
-        print(f"   MobileNet model: {type(mobilenet_model)}")
+        print(f"   YOLO model: {type(yolo_model).__name__}")
+        print(f"   MobileNet model: {type(mobilenet_model).__name__}")
         print(f"   Class labels: {len(class_labels) if class_labels else 0} classes")
+        print(f"   YOLO is None: {yolo_model is None}")
+        print(f"   MobileNet is None: {mobilenet_model is None}")
     except Exception as e:
         print(f"❌ Failed to load models: {e}")
         import traceback
         traceback.print_exc()
+        yolo_model = None
+        mobilenet_model = None
+        class_labels = None
     finally:
         models_loading = False
 
@@ -190,9 +196,14 @@ def predict():
         })
     
     except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"❌ Prediction error: {e}")
+        print(f"📋 Traceback:\n{error_details}")
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': str(e),
+            'details': error_details
         }), 500
 
 
@@ -257,9 +268,14 @@ def predict_video():
         return response
     
     except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"❌ Video processing error: {e}")
+        print(f"📋 Traceback:\n{error_details}")
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': str(e),
+            'details': error_details
         }), 500
 
 
