@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plant Disease Detection</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            padding: 30px;
+            text-align: center;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .upload-section {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .upload-box {
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 40px;
+            background: #f8f9ff;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .upload-box:hover {
+            background: #eef1ff;
+            border-color: #764ba2;
+        }
+
+        .upload-box.dragover {
+            background: #e3e7ff;
+            border-color: #43e97b;
+        }
+
+        #imageInput {
+            display: none;
+        }
+
+        .upload-icon {
+            font-size: 4em;
+            margin-bottom: 15px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.1em;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            margin: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .preview-section {
+            display: none;
+            margin: 30px 0;
+        }
+
+        .preview-image {
+            max-width: 100%;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .results-section {
+            display: none;
+            margin-top: 30px;
+        }
+
+        .result-card {
+            background: linear-gradient(135deg, #f8f9ff 0%, #eef1ff 100%);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            border-left: 5px solid #667eea;
+        }
+
+        .result-card.healthy {
+            border-left-color: #43e97b;
+        }
+
+        .result-card.diseased {
+            border-left-color: #ff6b6b;
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .plant-name {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .confidence {
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        .disease-name {
+            font-size: 1.2em;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        .status-healthy {
+            background: #43e97b;
+            color: white;
+        }
+
+        .status-diseased {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 30px;
+        }
+
+        .spinner {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #ff6b6b;
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            display: none;
+        }
+
+        .options {
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .checkbox-label {
+            display: inline-flex;
+            align-items: center;
+            font-size: 1.1em;
+            cursor: pointer;
+        }
+
+        .checkbox-label input {
+            margin-right: 10px;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌿 Plant Disease Detection</h1>
+            <p>AI-powered detection using YOLO + MobileNet</p>
+        </div>
+
+        <div class="content">
+            <div class="upload-section">
+                <div class="upload-box" id="uploadBox" onclick="document.getElementById('imageInput').click()">
+                    <div class="upload-icon">📷</div>
+                    <h2>Click or drag to upload image</h2>
+                    <p>Supported formats: JPG, PNG, BMP</p>
+                </div>
+                <input type="file" id="imageInput" accept="image/*">
+                
+                <div class="options">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="useYolo" checked>
+                        Use YOLO detection (uncheck for direct classification)
+                    </label>
+                </div>
+                
+                <button class="btn" id="predictBtn" disabled>🔍 Analyze Image</button>
+                <button class="btn" id="resetBtn" style="display:none;">🔄 Upload New Image</button>
+            </div>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <h3>Analyzing your plant image...</h3>
+            </div>
+
+            <div class="error" id="error"></div>
+
+            <div class="preview-section" id="previewSection">
+                <h2>📸 Uploaded Image:</h2>
+                <img id="previewImg" class="preview-image" alt="Preview">
+            </div>
+
+            <div class="results-section" id="resultsSection">
+                <h2>📊 Analysis Results:</h2>
+                <div id="resultsContainer"></div>
+                <h3>🖼️ Annotated Image:</h3>
+                <img id="annotatedImg" class="preview-image" alt="Annotated Result">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const imageInput = document.getElementById('imageInput');
+        const uploadBox = document.getElementById('uploadBox');
+        const predictBtn = document.getElementById('predictBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const previewSection = document.getElementById('previewSection');
+        const previewImg = document.getElementById('previewImg');
+        const resultsSection = document.getElementById('resultsSection');
+        const resultsContainer = document.getElementById('resultsContainer');
+        const annotatedImg = document.getElementById('annotatedImg');
+        const loading = document.getElementById('loading');
+        const errorDiv = document.getElementById('error');
+        const useYoloCheckbox = document.getElementById('useYolo');
+
+        let selectedFile = null;
+
+        // Handle file selection
+        imageInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                handleFile(file);
+            }
+        });
+
+        // Drag and drop
+        uploadBox.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadBox.classList.add('dragover');
+        });
+
+        uploadBox.addEventListener('dragleave', () => {
+            uploadBox.classList.remove('dragover');
+        });
+
+        uploadBox.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadBox.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) {
+                handleFile(file);
+            }
+        });
+
+        function handleFile(file) {
+            selectedFile = file;
+            predictBtn.disabled = false;
+            
+            // Show preview
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                previewImg.src = e.target.result;
+                previewSection.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+            
+            // Hide results from previous upload
+            resultsSection.style.display = 'none';
+            errorDiv.style.display = 'none';
+        }
+
+        // Predict button
+        predictBtn.addEventListener('click', async () => {
+            if (!selectedFile) return;
+
+            // Show loading
+            loading.style.display = 'block';
+            predictBtn.disabled = true;
+            errorDiv.style.display = 'none';
+            resultsSection.style.display = 'none';
+
+            // Prepare form data
+            const formData = new FormData();
+            formData.append('image', selectedFile);
+            formData.append('use_yolo', useYoloCheckbox.checked);
+
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    displayResults(data);
+                    resetBtn.style.display = 'inline-block';
+                } else {
+                    showError(data.error || 'Prediction failed');
+                }
+            } catch (error) {
+                showError('Network error: ' + error.message);
+            } finally {
+                loading.style.display = 'none';
+                predictBtn.disabled = false;
+            }
+        });
+
+        // Reset button
+        resetBtn.addEventListener('click', () => {
+            selectedFile = null;
+            imageInput.value = '';
+            previewSection.style.display = 'none';
+            resultsSection.style.display = 'none';
+            predictBtn.disabled = true;
+            resetBtn.style.display = 'none';
+            errorDiv.style.display = 'none';
+        });
+
+        function displayResults(data) {
+            resultsContainer.innerHTML = '';
+
+            data.predictions.forEach((pred, index) => {
+                const card = document.createElement('div');
+                card.className = `result-card ${pred.is_healthy ? 'healthy' : 'diseased'}`;
+                
+                const confidencePercent = (pred.confidence * 100).toFixed(1);
+                
+                card.innerHTML = `
+                    <div class="result-header">
+                        <div class="plant-name">${pred.plant}</div>
+                        <div class="confidence">${confidencePercent}%</div>
+                    </div>
+                    <div class="disease-name">
+                        <strong>Status:</strong> ${pred.disease}
+                    </div>
+                    <span class="status-badge status-${pred.is_healthy ? 'healthy' : 'diseased'}">
+                        ${pred.is_healthy ? '✅ Healthy' : '⚠️ Disease Detected'}
+                    </span>
+                `;
+                
+                resultsContainer.appendChild(card);
+            });
+
+            // Show annotated image
+            annotatedImg.src = data.annotated_image;
+            resultsSection.style.display = 'block';
+        }
+
+        function showError(message) {
+            errorDiv.textContent = '❌ Error: ' + message;
+            errorDiv.style.display = 'block';
+        }
+    </script>
+</body>
+</html>

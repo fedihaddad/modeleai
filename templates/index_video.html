@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plant Disease Detection - Image & Video</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            padding: 30px;
+            text-align: center;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .tabs {
+            display: flex;
+            background: #f8f9ff;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            font-size: 1.2em;
+            font-weight: bold;
+            transition: all 0.3s;
+            border: none;
+            background: transparent;
+        }
+
+        .tab:hover {
+            background: #eef1ff;
+        }
+
+        .tab.active {
+            background: white;
+            color: #667eea;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 40px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .upload-box {
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 40px;
+            background: #f8f9ff;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .upload-box:hover {
+            background: #eef1ff;
+            border-color: #764ba2;
+        }
+
+        .upload-box.dragover {
+            background: #e3e7ff;
+            border-color: #43e97b;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .upload-icon {
+            font-size: 4em;
+            margin-bottom: 15px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.1em;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            margin: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .preview-section {
+            display: none;
+            margin: 30px 0;
+        }
+
+        .preview-media {
+            max-width: 100%;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .results-section {
+            display: none;
+            margin-top: 30px;
+        }
+
+        .result-card {
+            background: linear-gradient(135deg, #f8f9ff 0%, #eef1ff 100%);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            border-left: 5px solid #667eea;
+        }
+
+        .result-card.healthy {
+            border-left-color: #43e97b;
+        }
+
+        .result-card.diseased {
+            border-left-color: #ff6b6b;
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .plant-name {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .confidence {
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        .disease-name {
+            font-size: 1.2em;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        .status-healthy {
+            background: #43e97b;
+            color: white;
+        }
+
+        .status-diseased {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 30px;
+        }
+
+        .spinner {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #ff6b6b;
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            display: none;
+        }
+
+        .options {
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .checkbox-label {
+            display: inline-flex;
+            align-items: center;
+            font-size: 1.1em;
+            cursor: pointer;
+        }
+
+        .checkbox-label input {
+            margin-right: 10px;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .progress {
+            display: none;
+            margin: 20px 0;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: #f0f0f0;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌿 Plant Disease Detection</h1>
+            <p>AI-powered detection using YOLO + MobileNet</p>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('image')">📷 Image Analysis</button>
+            <button class="tab" onclick="switchTab('video')">🎥 Video Processing</button>
+        </div>
+
+        <!-- IMAGE TAB -->
+        <div id="imageTab" class="tab-content active">
+            <div class="upload-box" id="imageUploadBox" onclick="document.getElementById('imageInput').click()">
+                <div class="upload-icon">📷</div>
+                <h2>Click or drag to upload image</h2>
+                <p>Supported formats: JPG, PNG, BMP</p>
+            </div>
+            <input type="file" id="imageInput" class="file-input" accept="image/*">
+            
+            <div class="options">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="useYolo" checked>
+                    Use YOLO detection (uncheck for direct classification)
+                </label>
+            </div>
+            
+            <button class="btn" id="predictBtn" disabled>🔍 Analyze Image</button>
+            <button class="btn" id="resetImageBtn" style="display:none;">🔄 Upload New Image</button>
+
+            <div class="loading" id="imageLoading">
+                <div class="spinner"></div>
+                <h3>Analyzing your plant image...</h3>
+            </div>
+
+            <div class="error" id="imageError"></div>
+
+            <div class="preview-section" id="imagePreviewSection">
+                <h2>📸 Uploaded Image:</h2>
+                <img id="previewImg" class="preview-media" alt="Preview">
+            </div>
+
+            <div class="results-section" id="imageResultsSection">
+                <h2>📊 Analysis Results:</h2>
+                <div id="imageResultsContainer"></div>
+                <h3>🖼️ Annotated Image:</h3>
+                <img id="annotatedImg" class="preview-media" alt="Annotated Result">
+            </div>
+        </div>
+
+        <!-- VIDEO TAB -->
+        <div id="videoTab" class="tab-content">
+            <div class="upload-box" id="videoUploadBox" onclick="document.getElementById('videoInput').click()">
+                <div class="upload-icon">🎥</div>
+                <h2>Click or drag to upload video</h2>
+                <p>Supported formats: MP4, AVI, MOV, MKV</p>
+                <p style="color: #ff6b6b; margin-top: 10px;">⚠️ Video processing may take several minutes</p>
+            </div>
+            <input type="file" id="videoInput" class="file-input" accept="video/*">
+            
+            <button class="btn" id="processVideoBtn" disabled>🎬 Process Video</button>
+            <button class="btn" id="resetVideoBtn" style="display:none;">🔄 Upload New Video</button>
+
+            <div class="loading" id="videoLoading">
+                <div class="spinner"></div>
+                <h3>Processing video... This may take several minutes</h3>
+            </div>
+
+            <div class="progress" id="videoProgress">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill">0%</div>
+                </div>
+            </div>
+
+            <div class="error" id="videoError"></div>
+
+            <div class="preview-section" id="videoPreviewSection">
+                <h2>🎥 Uploaded Video:</h2>
+                <video id="previewVideo" class="preview-media" controls></video>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentTab = 'image';
+        let selectedImageFile = null;
+        let selectedVideoFile = null;
+
+        function switchTab(tab) {
+            currentTab = tab;
+            
+            // Update tab buttons
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Update tab content
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.getElementById(tab + 'Tab').classList.add('active');
+        }
+
+        // ==================== IMAGE HANDLING ====================
+        const imageInput = document.getElementById('imageInput');
+        const imageUploadBox = document.getElementById('imageUploadBox');
+        const predictBtn = document.getElementById('predictBtn');
+        const resetImageBtn = document.getElementById('resetImageBtn');
+        const imagePreviewSection = document.getElementById('imagePreviewSection');
+        const previewImg = document.getElementById('previewImg');
+        const imageResultsSection = document.getElementById('imageResultsSection');
+        const imageResultsContainer = document.getElementById('imageResultsContainer');
+        const annotatedImg = document.getElementById('annotatedImg');
+        const imageLoading = document.getElementById('imageLoading');
+        const imageError = document.getElementById('imageError');
+        const useYoloCheckbox = document.getElementById('useYolo');
+
+        imageInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) handleImageFile(file);
+        });
+
+        imageUploadBox.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            imageUploadBox.classList.add('dragover');
+        });
+
+        imageUploadBox.addEventListener('dragleave', () => {
+            imageUploadBox.classList.remove('dragover');
+        });
+
+        imageUploadBox.addEventListener('drop', (e) => {
+            e.preventDefault();
+            imageUploadBox.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) {
+                handleImageFile(file);
+            }
+        });
+
+        function handleImageFile(file) {
+            selectedImageFile = file;
+            predictBtn.disabled = false;
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                previewImg.src = e.target.result;
+                imagePreviewSection.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+            
+            imageResultsSection.style.display = 'none';
+            imageError.style.display = 'none';
+        }
+
+        predictBtn.addEventListener('click', async () => {
+            if (!selectedImageFile) return;
+
+            imageLoading.style.display = 'block';
+            predictBtn.disabled = true;
+            imageError.style.display = 'none';
+            imageResultsSection.style.display = 'none';
+
+            const formData = new FormData();
+            formData.append('image', selectedImageFile);
+            formData.append('use_yolo', useYoloCheckbox.checked);
+
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    displayImageResults(data);
+                    resetImageBtn.style.display = 'inline-block';
+                } else {
+                    showImageError(data.error || 'Prediction failed');
+                }
+            } catch (error) {
+                showImageError('Network error: ' + error.message);
+            } finally {
+                imageLoading.style.display = 'none';
+                predictBtn.disabled = false;
+            }
+        });
+
+        resetImageBtn.addEventListener('click', () => {
+            selectedImageFile = null;
+            imageInput.value = '';
+            imagePreviewSection.style.display = 'none';
+            imageResultsSection.style.display = 'none';
+            predictBtn.disabled = true;
+            resetImageBtn.style.display = 'none';
+            imageError.style.display = 'none';
+        });
+
+        function displayImageResults(data) {
+            imageResultsContainer.innerHTML = '';
+
+            data.predictions.forEach((pred) => {
+                const card = document.createElement('div');
+                card.className = `result-card ${pred.is_healthy ? 'healthy' : 'diseased'}`;
+                
+                const confidencePercent = (pred.confidence * 100).toFixed(1);
+                
+                card.innerHTML = `
+                    <div class="result-header">
+                        <div class="plant-name">${pred.plant}</div>
+                        <div class="confidence">${confidencePercent}%</div>
+                    </div>
+                    <div class="disease-name">
+                        <strong>Status:</strong> ${pred.disease}
+                    </div>
+                    <span class="status-badge status-${pred.is_healthy ? 'healthy' : 'diseased'}">
+                        ${pred.is_healthy ? '✅ Healthy' : '⚠️ Disease Detected'}
+                    </span>
+                `;
+                
+                imageResultsContainer.appendChild(card);
+            });
+
+            annotatedImg.src = data.annotated_image;
+            imageResultsSection.style.display = 'block';
+        }
+
+        function showImageError(message) {
+            imageError.textContent = '❌ Error: ' + message;
+            imageError.style.display = 'block';
+        }
+
+        // ==================== VIDEO HANDLING ====================
+        const videoInput = document.getElementById('videoInput');
+        const videoUploadBox = document.getElementById('videoUploadBox');
+        const processVideoBtn = document.getElementById('processVideoBtn');
+        const resetVideoBtn = document.getElementById('resetVideoBtn');
+        const videoPreviewSection = document.getElementById('videoPreviewSection');
+        const previewVideo = document.getElementById('previewVideo');
+        const videoLoading = document.getElementById('videoLoading');
+        const videoError = document.getElementById('videoError');
+
+        videoInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) handleVideoFile(file);
+        });
+
+        videoUploadBox.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            videoUploadBox.classList.add('dragover');
+        });
+
+        videoUploadBox.addEventListener('dragleave', () => {
+            videoUploadBox.classList.remove('dragover');
+        });
+
+        videoUploadBox.addEventListener('drop', (e) => {
+            e.preventDefault();
+            videoUploadBox.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('video/')) {
+                handleVideoFile(file);
+            }
+        });
+
+        function handleVideoFile(file) {
+            selectedVideoFile = file;
+            processVideoBtn.disabled = false;
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                previewVideo.src = e.target.result;
+                videoPreviewSection.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+            
+            videoError.style.display = 'none';
+        }
+
+        processVideoBtn.addEventListener('click', async () => {
+            if (!selectedVideoFile) return;
+
+            videoLoading.style.display = 'block';
+            processVideoBtn.disabled = true;
+            videoError.style.display = 'none';
+
+            const formData = new FormData();
+            formData.append('video', selectedVideoFile);
+
+            try {
+                const response = await fetch('/predict-video', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = selectedVideoFile.name.replace(/\.[^/.]+$/, '') + '_result.mp4';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                    
+                    alert('✅ Video processed successfully! Download started.');
+                    resetVideoBtn.style.display = 'inline-block';
+                } else {
+                    const data = await response.json();
+                    showVideoError(data.error || 'Video processing failed');
+                }
+            } catch (error) {
+                showVideoError('Network error: ' + error.message);
+            } finally {
+                videoLoading.style.display = 'none';
+                processVideoBtn.disabled = false;
+            }
+        });
+
+        resetVideoBtn.addEventListener('click', () => {
+            selectedVideoFile = null;
+            videoInput.value = '';
+            videoPreviewSection.style.display = 'none';
+            processVideoBtn.disabled = true;
+            resetVideoBtn.style.display = 'none';
+            videoError.style.display = 'none';
+        });
+
+        function showVideoError(message) {
+            videoError.textContent = '❌ Error: ' + message;
+            videoError.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
