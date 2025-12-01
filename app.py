@@ -41,9 +41,18 @@ mobilenet_model = None
 class_labels = None
 
 # Load models immediately when module is imported (for Gunicorn)
-print("🚀 Initializing models at module level...")
-yolo_model, mobilenet_model, class_labels = load_models()
-print("✅ Models initialized successfully!")
+try:
+    print("🚀 Initializing models at module level...")
+    yolo_model, mobilenet_model, class_labels = load_models()
+    print("✅ Models initialized successfully!")
+    print(f"   YOLO model: {type(yolo_model)}")
+    print(f"   MobileNet model: {type(mobilenet_model)}")
+    print(f"   Class labels: {len(class_labels) if class_labels else 0} classes")
+except Exception as e:
+    print(f"❌ CRITICAL ERROR: Failed to load models: {e}")
+    print("   Application will not work until models are loaded!")
+    import traceback
+    traceback.print_exc()
 
 
 def allowed_file(filename, file_type='image'):
@@ -57,16 +66,6 @@ def allowed_file(filename, file_type='image'):
     elif file_type == 'video':
         return ext in app.config['ALLOWED_VIDEO_EXTENSIONS']
     return False
-
-
-def load_models_once():
-    """Load models once at startup"""
-    global yolo_model, mobilenet_model, class_labels
-    
-    if yolo_model is None:
-        print("🚀 Loading models for the first time...")
-        yolo_model, mobilenet_model, class_labels = load_models()
-        print("✅ Models loaded successfully!")
 
 
 @app.route('/')
@@ -93,6 +92,10 @@ def predict():
     Returns: JSON with predictions
     """
     try:
+        # Validate models are loaded
+        if yolo_model is None or mobilenet_model is None or class_labels is None:
+            return jsonify({'error': 'Models not loaded yet. Please wait and try again.'}), 503
+        
         # Check if file is present
         if 'image' not in request.files:
             return jsonify({'error': 'No image file provided'}), 400
@@ -173,6 +176,10 @@ def predict_video():
     Returns: Processed video file
     """
     try:
+        # Validate models are loaded
+        if yolo_model is None or mobilenet_model is None or class_labels is None:
+            return jsonify({'error': 'Models not loaded yet. Please wait and try again.'}), 503
+        
         # Check if file is present
         if 'video' not in request.files:
             return jsonify({'error': 'No video file provided'}), 400
@@ -235,9 +242,7 @@ def get_classes():
 
 
 if __name__ == '__main__':
-    # Load models before starting server
-    load_models_once()
-    
+    # Models are already loaded at module level
     # Get port from environment variable (Render sets this)
     port = int(os.environ.get('PORT', 5000))
     
