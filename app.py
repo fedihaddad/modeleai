@@ -40,19 +40,34 @@ yolo_model = None
 mobilenet_model = None
 class_labels = None
 
-# Load models immediately when module is imported (for Gunicorn)
-try:
-    print("🚀 Initializing models at module level...")
-    yolo_model, mobilenet_model, class_labels = load_models()
-    print("✅ Models initialized successfully!")
-    print(f"   YOLO model: {type(yolo_model)}")
-    print(f"   MobileNet model: {type(mobilenet_model)}")
-    print(f"   Class labels: {len(class_labels) if class_labels else 0} classes")
-except Exception as e:
-    print(f"❌ CRITICAL ERROR: Failed to load models: {e}")
-    print("   Application will not work until models are loaded!")
-    import traceback
-    traceback.print_exc()
+# Flag to track if models are being loaded
+models_loading = False
+
+
+def load_models_async():
+    """Load models asynchronously after server starts"""
+    global yolo_model, mobilenet_model, class_labels, models_loading
+    
+    if yolo_model is not None:
+        return  # Already loaded
+    
+    if models_loading:
+        return  # Already loading
+    
+    models_loading = True
+    try:
+        print("🚀 Loading models in background...")
+        yolo_model, mobilenet_model, class_labels = load_models()
+        print("✅ Models loaded successfully!")
+        print(f"   YOLO model: {type(yolo_model)}")
+        print(f"   MobileNet model: {type(mobilenet_model)}")
+        print(f"   Class labels: {len(class_labels) if class_labels else 0} classes")
+    except Exception as e:
+        print(f"❌ Failed to load models: {e}")
+        import traceback
+        traceback.print_exc()
+    finally:
+        models_loading = False
 
 
 def allowed_file(filename, file_type='image'):
@@ -71,15 +86,25 @@ def allowed_file(filename, file_type='image'):
 @app.route('/')
 def index():
     """Serve the main dashboard"""
+    # Trigger model loading on first request
+    if yolo_model is None and not models_loading:
+        import threading
+        threading.Thread(target=load_models_async, daemon=True).start()
     return render_template('index_video.html')
 
 
 @app.route('/health')
 def health():
     """Health check endpoint"""
+    # Trigger model loading on health check
+    if yolo_model is None and not models_loading:
+        import threading
+        threading.Thread(target=load_models_async, daemon=True).start()
+    
     return jsonify({
         'status': 'healthy',
         'models_loaded': yolo_model is not None and mobilenet_model is not None,
+        'models_loading': models_loading,
         'features': ['image_prediction', 'video_processing']
     })
 
