@@ -40,6 +40,11 @@ yolo_model = None
 mobilenet_model = None
 class_labels = None
 
+# Load models immediately when module is imported (for Gunicorn)
+print("🚀 Initializing models at module level...")
+yolo_model, mobilenet_model, class_labels = load_models()
+print("✅ Models initialized successfully!")
+
 
 def allowed_file(filename, file_type='image'):
     """Check if file extension is allowed"""
