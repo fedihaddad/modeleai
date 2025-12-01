@@ -118,8 +118,11 @@ def predict():
     """
     try:
         # Validate models are loaded
+        if models_loading:
+            return jsonify({'error': 'Models are still loading. Please wait a moment and try again.'}), 503
+        
         if yolo_model is None or mobilenet_model is None or class_labels is None:
-            return jsonify({'error': 'Models not loaded yet. Please wait and try again.'}), 503
+            return jsonify({'error': 'Models not loaded yet. Please refresh the page and try again.'}), 503
         
         # Check if file is present
         if 'image' not in request.files:
@@ -202,8 +205,11 @@ def predict_video():
     """
     try:
         # Validate models are loaded
+        if models_loading:
+            return jsonify({'error': 'Models are still loading. Please wait a moment and try again.'}), 503
+        
         if yolo_model is None or mobilenet_model is None or class_labels is None:
-            return jsonify({'error': 'Models not loaded yet. Please wait and try again.'}), 503
+            return jsonify({'error': 'Models not loaded yet. Please refresh the page and try again.'}), 503
         
         # Check if file is present
         if 'video' not in request.files:
